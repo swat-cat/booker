@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "46595573445",
+    "firebase_url": "https://rest-zones-booker.firebaseio.com",
+    "project_id": "rest-zones-booker",
+    "storage_bucket": "rest-zones-booker.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:46595573445:android:1ec87a4d51be2b7a",
+        "android_client_info": {
+          "package_name": "com.swatcat.booker"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "46595573445-0ciejsvnuk82ma0eje8uisiab00ck49s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBnD3HPhKXwYiccXHQIeiWTKTcVYkVR9ik"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
