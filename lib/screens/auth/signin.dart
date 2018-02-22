@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/src/services/message_codec.dart';
 import 'dart:async';
-import '../base/loading_state.dart';
+import '../../base/loading_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:booker/services/rest_client.dart';
 import 'package:booker/base/constants.dart'  as Constants;
 import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SignIn extends StatefulWidget {
   @override
@@ -164,8 +165,15 @@ class SignInState extends LoadingBaseState<SignIn> {
     _confirmPassController.clear();
     setState(()=>isLoading = true);
     auth(email, pass).then((user) {
+      if (signState == SignState.SIGNUP) {
+        Firestore.instance.collection('users').document(user.email)
+            .setData({ 'email': user.email });
+      }
       if(user.displayName == null || user.displayName.length==0){
         Navigator.of(context).pushReplacementNamed("/personal_data");
+      }
+      else{
+        Navigator.of(context).pushReplacementNamed("/activities");
       }
       setState(()=>isLoading = false);
     }).catchError((PlatformException e) {

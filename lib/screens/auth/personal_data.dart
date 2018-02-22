@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
-
-import '../base/loading_state.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../base/loading_state.dart';
 import 'package:flutter/material.dart';
 import 'package:booker/base/dialog_shower.dart' as DialogShower;
 
@@ -99,17 +99,28 @@ class _PersonalDataState extends LoadingBaseState<PersonalData> {
           child: DialogShower.buildDialog(message: "No content for saving",confirm: "Ok", confirmFn: ()=>Navigator.pop(context)));
       return;
     }
-    String displayName;
+    String displayName="";
     if(firstName.length>0){
       displayName+=firstName;
     }
     if(lastName.length>0){
       displayName+=" "+lastName;
     }
-    UserUpdateInfo updateInfo = new UserUpdateInfo();
-    updateInfo.displayName = displayName;
-    _auth.updateProfile(updateInfo).then((value){
-      //TODO navigate to main
+
+    _auth.currentUser().then((user){
+      DocumentReference docRef = Firestore.instance.collection("users").document(user.email);
+      if(docRef == null){
+        Firestore.instance.collection("users").document(user.email).setData({"email":user.email, "displayName":displayName});
+      }
+      else{
+        docRef.updateData({"displayName":displayName});
+      }
+      UserUpdateInfo updateInfo = new UserUpdateInfo();
+      updateInfo.displayName = displayName;
+
+      _auth.updateProfile(updateInfo).then((value){
+        Navigator.pushReplacementNamed(context, "/activities");
+      });
     });
   }
 

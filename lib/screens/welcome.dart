@@ -29,6 +29,9 @@ class _WelcomeState extends State<Welcome> {
         if(user.displayName == null || user.displayName.length==0){
           Navigator.of(context).pushReplacementNamed("/personal_data");
         }
+        else{
+          Navigator.pushReplacementNamed(context, "/activities");
+        }
       }
       else{
         Navigator.of(context).pushReplacementNamed("/signin");
