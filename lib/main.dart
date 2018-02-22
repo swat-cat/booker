@@ -3,9 +3,16 @@ import 'package:booker/screens/auth/signin.dart';
 import 'package:booker/screens/main/activity.dart';
 import 'package:booker/screens/welcome.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 
-void main() => runApp(new MyApp());
+void main(){
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitDown,
+    DeviceOrientation.portraitUp,
+  ]);
+  runApp(new MyApp());
+}
 
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.

@@ -14,6 +14,15 @@ class BookingItem{
 
   BookingItem({this.user,this.hourStart,this.minuteStart,this.hourEnd,this.minuteEnd,this.sortId,this.id});
 
+  bool _checked = false;
+
+  bool get checked => _checked;
+
+  set checked(bool value) {
+    _checked = value;
+  }
+
+
 }
 
 class BookingTable{
@@ -46,4 +55,6 @@ class BookingModel{
       );
     }).toList();
   }
+
+  
 }

@@ -1,11 +1,11 @@
 import 'package:booker/services/activities.dart';
-import 'package:booker/services/authentication.dart';
 import 'package:booker/services/booking.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:booker/base/loading_state.dart';
 import 'package:intl/intl.dart';
 import "package:range/range.dart";
+import 'package:booker/base/dialog_shower.dart' as DialogShower;
 
 
 class Booking extends StatefulWidget {
@@ -24,11 +24,20 @@ class _BookingState extends LoadingBaseState<Booking> {
   final formatter = new DateFormat("dd MMM yyyy");
   final BookingModel bookingModel = new BookingModel();
   List<BookingItem> _table;
+  bool _chosen = false;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   String _email;
 
   @override
   Widget content() {
+    return new Stack(
+      children: <Widget>[
+        mainContent
+      ],
+    );
+  }
+
+  Container get mainContent {
     return new Container(
       margin: new EdgeInsets.all(16.0),
       child: new Column(
@@ -57,6 +66,29 @@ class _BookingState extends LoadingBaseState<Booking> {
             height: 2.0,
             color: new Color(0xff64B5F6),
           ),
+          new Row(
+            children: <Widget>[
+              new Expanded(child: new Container()),
+              new Expanded(
+                  child: new Text("0-10",textAlign: TextAlign.center,)
+              ),
+              new Expanded(
+                  child: new Text("10-20",textAlign: TextAlign.center,)
+              ),
+              new Expanded(
+                  child: new Text("20-30",textAlign: TextAlign.center,)
+              ),
+              new Expanded(
+                  child: new Text("30-40",textAlign: TextAlign.center,)
+              ),
+              new Expanded(
+                  child: new Text("40-50",textAlign: TextAlign.center,)
+              ),
+              new Expanded(
+                  child: new Text("50-59",textAlign: TextAlign.center,)
+              ),
+            ],
+          ),
           new Expanded(
               child:  new Row(
                 crossAxisAlignment:CrossAxisAlignment.start,
@@ -69,7 +101,19 @@ class _BookingState extends LoadingBaseState<Booking> {
                       flex: 6,
                       child: _table!=null? timeTableGridView: new Container())
                 ],
-              ))
+              )),
+        _chosen?new Align(
+            child: new RaisedButton(
+              onPressed: _saveChoosenItems,
+              color: new Color(0xff64B5F6),
+              child: new Text("Save",
+                style: new TextStyle(
+                    color: new Color(0xffffffff)
+                ),
+              ),
+            ),
+          ):new Container(),
+         _chosen?new Padding(padding: new EdgeInsets.only(bottom: 16.0)):new Container(),
         ],
       ),
     );
@@ -80,6 +124,7 @@ class _BookingState extends LoadingBaseState<Booking> {
     return new ListView.builder(
         itemBuilder:(BuildContext context, int index) => new Container(
           child: new Container(
+            margin: new EdgeInsets.only(top: 2.1,bottom: 2.1),
             height: 20.0,
             width: 30.0,
             alignment: Alignment.center,
@@ -108,7 +153,9 @@ class _BookingState extends LoadingBaseState<Booking> {
         new Padding(padding: new EdgeInsets.only(right: 8.0)),
         onboardingItem(context, Colors.greenAccent, "Booked"),
         new Padding(padding: new EdgeInsets.only(right: 8.0)),
-        onboardingItem(context, Colors.blueAccent, "Free")
+        onboardingItem(context, Colors.blueAccent, "Free"),
+        new Padding(padding: new EdgeInsets.only(right: 8.0)),
+        onboardingItem(context, Colors.pinkAccent, "Choosen"),
       ],
     );
   }
@@ -118,14 +165,14 @@ class _BookingState extends LoadingBaseState<Booking> {
       child: new Column(
         children: <Widget>[
           new Padding(padding: new EdgeInsets.all(4.0)),
-          bookItem(c),
+          onborardingItem(c),
           new Text(s)
         ],
       ),
     );
   }
 
-  Widget bookItem(Color c) {
+  Widget onborardingItem(Color c) {
     return new Container(
           height: 30.0,
           decoration: new BoxDecoration(
@@ -136,6 +183,39 @@ class _BookingState extends LoadingBaseState<Booking> {
               )
           ),
         );
+  }
+
+  Widget bookItem(int index) {
+    return new GestureDetector(
+      child: new Container(
+        height: 30.0,
+        decoration: new BoxDecoration(
+            color: getColor(_table[index]),
+            borderRadius: new BorderRadius.all(const Radius.circular(4.0)),
+            border: new Border.all(
+                color: Colors.grey
+            )
+        ),
+      ),
+      onTap: (){
+        _handleBookItemClick(index);
+      },
+    );
+  }
+
+  _handleBookItemClick(int index){
+    if(_table[index].user == null){
+      setState((){
+        _chosen = true;
+        _table[index].checked = true;
+      });
+    }
+    else if(_table[index].user == _email){
+      showAlreadyYoursPopup(_table[index]);
+    }
+    else{
+      showBookedPopup(_table[index]);
+    }
   }
 
   @override
@@ -156,14 +236,17 @@ class _BookingState extends LoadingBaseState<Booking> {
 
   List<Widget>_getTable() {
     List<Widget> items = new List();
-    _table.forEach((item){
-      items.add(new GridTile(child: bookItem(getColor(item))));
-    });
+    for(int i =0; i< _table.length; i++){
+      items.add(new GridTile(child: bookItem(i)));
+    }
     return items;
   }
 
   Color getColor(BookingItem bookingItem){
-    if(bookingItem.user == null){
+    if(bookingItem.checked){
+      return Colors.pinkAccent;
+    }
+    else if(bookingItem.user == null){
       return Colors.blueAccent;
     }
     else if(bookingItem.user == _email){
@@ -173,5 +256,26 @@ class _BookingState extends LoadingBaseState<Booking> {
       return Colors.greenAccent;
     }
   }
+
+  void showAlreadyYoursPopup(BookingItem item) {
+    DialogShower.buildDialog(
+        message:  "Hey! Drinking on work? You've already booked this time ;)",
+        confirm: "OK",
+        confirmFn: ()=>Navigator.pop(context)
+    );
+  }
+
+  void showBookedPopup(BookingItem item) {
+    DialogShower.buildDialog(
+        message:  "Time booked by user: "+item.user,
+        confirm: "OK",
+        confirmFn: ()=>Navigator.pop(context)
+    );
+  }
+
+  void _saveChoosenItems() {
+
+  }
 }
+
 
