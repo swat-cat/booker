@@ -18,6 +18,7 @@ class _ActivitiesState extends LoadingBaseState<Activities> {
   void initState() {
     title = "Office Activities";
     isLoading = true;
+    hasUser = true;
     _checkNeedClearData();
     _activitiesModel.getAllActivities().then((activities){
       setState((){

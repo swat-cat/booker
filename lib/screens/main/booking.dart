@@ -203,6 +203,7 @@ class _BookingState extends LoadingBaseState<Booking> {
   void initState() {
     super.initState();
     isLoading = true;
+    hasUser = true;
     title = "Book for "+ activityData.name;
     _auth.currentUser().then((user){
       setState(()=>_email = user.email);
@@ -251,9 +252,9 @@ class _BookingState extends LoadingBaseState<Booking> {
         message:  "Release previously booked time?",
         confirm: "YES",
         confirmFn: () {
-          Navigator.pop(context);
           setState(()=>isLoading = true);
           bookingModel.deleteOwnBookingItem(activityData.id, item);
+          Navigator.pop(context);
         },
         cancel: "NO",
         cancelFn: ()=> Navigator.pop(context)

@@ -15,6 +15,12 @@ class _PersonalDataState extends LoadingBaseState<PersonalData> {
   final TextEditingController _lastNameController = new TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+
+  @override
+  void initState() {
+    hasUser = true;
+  }
+
   @override
   Widget content() {
     setState(()=>title = "Profile");

@@ -31,4 +31,10 @@ class UserAuth {
         .signInWithEmailAndPassword(
         email: userData.email, password: userData.password);
   }
+
+  static Future<Null> logout()async{
+    FirebaseAuth firebaseAuth = FirebaseAuth.instance;
+    Null n = await firebaseAuth.signOut();
+    return n;
+  }
 }
