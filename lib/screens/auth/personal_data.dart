@@ -125,6 +125,6 @@ class _PersonalDataState extends LoadingBaseState<PersonalData> {
   }
 
   void _skip() {
-    
+    Navigator.pushReplacementNamed(context, "/activities");
   }
 }

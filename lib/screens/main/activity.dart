@@ -65,6 +65,8 @@ class ActivityItem extends StatelessWidget {
                 child: new Image.network(
                   activityData.imageUrl,
                   fit: BoxFit.fitHeight,
+                  width: 150.0,
+                  height: 150.0,
                 ),
               ),
               new Padding(padding: new EdgeInsets.only(top: 8.0)),

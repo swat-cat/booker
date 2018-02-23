@@ -29,9 +29,10 @@ class BookingTable{
   static List<BookingItem> getDefaultDayTable(){
     List<BookingItem> list = new List();
 
-    range(8,21).toList().forEach((h){
-      range(0,60,10).toList().forEach((m){
-        int minuteEnd =m!=50?m+10:59;
+    range(8,20).toList().forEach((h){
+      range(0,60,15).toList().forEach((m){
+        int minuteEnd = m+15;
+        if(minuteEnd == 60) minuteEnd = 59;
         list.add(new BookingItem(hourStart: h,minuteStart: m,hourEnd: h,minuteEnd: minuteEnd,sortId: int.parse(h.toString()+minuteEnd.toString())));
       });
     });
@@ -45,16 +46,41 @@ class BookingModel{
   QuerySnapshot snapshot = await Firestore.instance.collection('offices/vinnytsa/activities').document(activityId).getCollection("book_periods").getDocuments();
   return snapshot.documents.map((document){
 
-      return new BookingItem(user: document["email"],
+      return new BookingItem(user: document["user"],
           hourStart: document["hour_start"],
           hourEnd: document["hour_end"],
           minuteStart: document["minute_start"],
           minuteEnd: document["minute_end"],
           sortId: document ["sort_id"],
-          id: document.documentID
+          id: document.documentID,
       );
     }).toList();
   }
 
-  
+  Future<Null> saveChosenBookingItems(String activityId, List<BookingItem> items, String email) async{
+    CollectionReference reference = Firestore.instance.collection('offices/vinnytsa/activities').document(activityId).getCollection("book_periods");
+    List<Future<Null>> futures = new List();
+    items.forEach((i){
+      futures.add(reference.document(i.id).updateData({
+        "user":email
+      }));
+    });
+    var stream = new Stream.fromFutures(futures);
+    await for(var value in stream){
+    }
+  }
+
+  Future<Null> deleteOwnBookingItem(String activityId, BookingItem item)async{
+    CollectionReference reference = Firestore.instance.collection('offices/vinnytsa/activities').document(activityId).getCollection("book_periods");
+    Null n = await reference.document(item.id).updateData({
+      "user":null
+    });
+    return n;
+  }
+
+  void addChangesListener(String activityId,fn){
+    CollectionReference reference = Firestore.instance.collection('offices/vinnytsa/activities').document(activityId).getCollection("book_periods");
+    reference.where("sort_id",isGreaterThan: 0).snapshots.listen(fn);
+  }
+
 }

@@ -24,7 +24,7 @@ class _BookingState extends LoadingBaseState<Booking> {
   final formatter = new DateFormat("dd MMM yyyy");
   final BookingModel bookingModel = new BookingModel();
   List<BookingItem> _table;
-  bool _chosen = false;
+  int _chosenLatch = 0;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   String _email;
 
@@ -66,45 +66,11 @@ class _BookingState extends LoadingBaseState<Booking> {
             height: 2.0,
             color: new Color(0xff64B5F6),
           ),
-          new Row(
-            children: <Widget>[
-              new Expanded(child: new Container()),
-              new Expanded(
-                  child: new Text("0-10",textAlign: TextAlign.center,)
-              ),
-              new Expanded(
-                  child: new Text("10-20",textAlign: TextAlign.center,)
-              ),
-              new Expanded(
-                  child: new Text("20-30",textAlign: TextAlign.center,)
-              ),
-              new Expanded(
-                  child: new Text("30-40",textAlign: TextAlign.center,)
-              ),
-              new Expanded(
-                  child: new Text("40-50",textAlign: TextAlign.center,)
-              ),
-              new Expanded(
-                  child: new Text("50-59",textAlign: TextAlign.center,)
-              ),
-            ],
-          ),
-          new Expanded(
-              child:  new Row(
-                crossAxisAlignment:CrossAxisAlignment.start,
-                children: <Widget>[
-                  new Expanded(
-                    flex: 1,
-                    child: timeList,
-                  ),
-                  new Expanded(
-                      flex: 6,
-                      child: _table!=null? timeTableGridView: new Container())
-                ],
-              )),
-        _chosen?new Align(
+          _table!=null?new Expanded(
+              child: timeTableGridView):new Container(),
+          _chosenLatch>0 ? new Align(
             child: new RaisedButton(
-              onPressed: _saveChoosenItems,
+              onPressed: _saveChosenItems,
               color: new Color(0xff64B5F6),
               child: new Text("Save",
                 style: new TextStyle(
@@ -112,8 +78,10 @@ class _BookingState extends LoadingBaseState<Booking> {
                 ),
               ),
             ),
-          ):new Container(),
-         _chosen?new Padding(padding: new EdgeInsets.only(bottom: 16.0)):new Container(),
+          ) : new Container(),
+          _chosenLatch>0
+              ? new Padding(padding: new EdgeInsets.only(bottom: 4.0,top: 4.0))
+              : new Container(),
         ],
       ),
     );
@@ -137,8 +105,8 @@ class _BookingState extends LoadingBaseState<Booking> {
 
   GridView get timeTableGridView {
     return new GridView.count(
-              crossAxisCount: 6,
-              childAspectRatio: 2.0,
+              crossAxisCount: 4,
+              childAspectRatio: 2.75,
               padding: const EdgeInsets.all(4.0),
               mainAxisSpacing: 2.0,
               crossAxisSpacing: 2.0,
@@ -189,6 +157,13 @@ class _BookingState extends LoadingBaseState<Booking> {
     return new GestureDetector(
       child: new Container(
         height: 30.0,
+        alignment: Alignment.center,
+        child: new Text(
+            _getItemText(_table[index]),
+            style: new TextStyle(
+              fontSize: 9.0,
+              color: Colors.white
+            )),
         decoration: new BoxDecoration(
             color: getColor(_table[index]),
             borderRadius: new BorderRadius.all(const Radius.circular(4.0)),
@@ -204,9 +179,15 @@ class _BookingState extends LoadingBaseState<Booking> {
   }
 
   _handleBookItemClick(int index){
-    if(_table[index].user == null){
+    if(_table[index].checked){
       setState((){
-        _chosen = true;
+        _chosenLatch--;
+        _table[index].checked = false;
+      });
+    }
+    else if(_table[index].user == null){
+      setState((){
+        _chosenLatch++;
         _table[index].checked = true;
       });
     }
@@ -221,13 +202,21 @@ class _BookingState extends LoadingBaseState<Booking> {
   @override
   void initState() {
     super.initState();
+    isLoading = true;
     title = "Book for "+ activityData.name;
     _auth.currentUser().then((user){
       setState(()=>_email = user.email);
-      bookingModel.getTable(activityData.id).then((table){
-        setState((){
-          this._table = table;
-        });
+      bookingModel.addChangesListener(activityData.id,(snapshot){
+        updateTable();
+      });
+    });
+  }
+
+  void updateTable() {
+    bookingModel.getTable(activityData.id).then((table){
+      setState((){
+        this._table = table;
+        isLoading = false;
       });
     });
   }
@@ -258,23 +247,74 @@ class _BookingState extends LoadingBaseState<Booking> {
   }
 
   void showAlreadyYoursPopup(BookingItem item) {
-    DialogShower.buildDialog(
-        message:  "Hey! Drinking on work? You've already booked this time ;)",
-        confirm: "OK",
-        confirmFn: ()=>Navigator.pop(context)
+    var dialog = DialogShower.buildDialog(
+        message:  "Release previously booked time?",
+        confirm: "YES",
+        confirmFn: () {
+          Navigator.pop(context);
+          setState(()=>isLoading = true);
+          bookingModel.deleteOwnBookingItem(activityData.id, item);
+        },
+        cancel: "NO",
+        cancelFn: ()=> Navigator.pop(context)
+
     );
+    showDialog(context: context, child: dialog);
   }
 
   void showBookedPopup(BookingItem item) {
-    DialogShower.buildDialog(
+    var dialog = DialogShower.buildDialog(
         message:  "Time booked by user: "+item.user,
         confirm: "OK",
         confirmFn: ()=>Navigator.pop(context)
     );
+    showDialog(context: context, child: dialog);
   }
 
-  void _saveChoosenItems() {
+  void _saveChosenItems() {
+    List<BookingItem> chosen = _table.where((item){
+      return item.checked;
+    }).toList();
+    List<BookingItem> prevBooked = _table.where((item){
+      return item.user == _email;
+    }).toList();
+    if(chosen.length>4){
+      var dialog = DialogShower.buildDialog(message: "Booking more then hour? Leave a chance to other people.",
+      confirm: "OK",confirmFn: ()=>Navigator.pop(context));
+      showDialog(context: context, child: dialog);
+      return;
+    }
+    else if((prevBooked.length+chosen.length)>6){
+      var dialog = DialogShower.buildDialog(message: "You've already booked "+(prevBooked.length*15).toString()+" minutes before. There is only "+((6-prevBooked.length)*15).toString()+" minutes available.",
+          confirm: "OK",confirmFn: ()=>Navigator.pop(context));
+      showDialog(context: context, child: dialog);
+      return;
+    }else if(!_checkChosenItemsCorrectlySpreaded(chosen)){
+      var dialog = DialogShower.buildDialog(message: "It seems you're trying to book time in several hour lines. Cheating is bad ;)",
+          confirm: "OK",confirmFn: ()=>Navigator.pop(context));
+      showDialog(context: context, child: dialog);
+      return;
+    }
+    setState(()=>isLoading = true);
+    bookingModel.saveChosenBookingItems(activityData.id, chosen, _email);
+  }
 
+  bool _checkChosenItemsCorrectlySpreaded(List<BookingItem> items){
+    BookingItem firstItem = items.first;
+    bool correctly = true;
+    items.forEach((item){
+      if((firstItem.hourStart - item.hourStart)>1 || (firstItem.hourStart - item.hourStart)<-1){
+        correctly = false;
+      }
+    });
+    return correctly;
+  }
+
+  String _getItemText(BookingItem table) {
+    String minuteStart = table.minuteStart>9?table.minuteStart.toString():"0"+table.minuteStart.toString();
+    String minuteEnd = table.minuteEnd>9?table.minuteEnd.toString():"0"+table.minuteEnd.toString();
+    String result = table.hourStart.toString()+":"+minuteStart+"-"+table.hourEnd.toString()+':'+minuteEnd;
+    return result;
   }
 }
 
